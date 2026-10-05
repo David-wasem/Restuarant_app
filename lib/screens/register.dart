@@ -1,3 +1,4 @@
+import 'package:api_app/custom/custom_snackBar.dart';
 import 'package:api_app/exceptions/exception_handler.dart';
 import 'package:api_app/screens/login.dart';
 import 'package:api_app/services/api_dio.dart';
@@ -20,6 +21,7 @@ class _RegisterPageState extends State<RegisterPage> {
   static const Color _muted = Color(0xFF78675C);
   static const Color _outline = Color(0xFFDCCFC3);
   static const Color _inputFill = Color(0xFFFFF8F0);
+  static const Color _error = Color(0xFF963B2B);
 
   late final TextEditingController username;
   late final TextEditingController password;
@@ -96,12 +98,21 @@ class _RegisterPageState extends State<RegisterPage> {
       final response = await api.register(username.text, password.text);
       print(response);
       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        CustomSnackBar(
+          message: "Registration successful",
+          backgroundColor: Colors.green,
+        ),
+      );
       _goToLogin();
     } on DioException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(ExceptionHandler.handle(e))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        CustomSnackBar(
+          message: ExceptionHandler.handle(e),
+          backgroundColor: _error,
+        ),
+      );
       print(ExceptionHandler.handle(e));
     } finally {
       if (mounted) {
@@ -112,9 +123,8 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  MaterialPageRoute<void> _loginRoute() => MaterialPageRoute<void>(
-    builder: (context) => const LoginPage(),
-  );
+  MaterialPageRoute<void> _loginRoute() =>
+      MaterialPageRoute<void>(builder: (context) => const LoginPage());
 
   void _goToLogin() {
     Navigator.pushAndRemoveUntil(context, _loginRoute(), (route) => false);
@@ -131,10 +141,7 @@ class _RegisterPageState extends State<RegisterPage> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: AlignmentGeometry.topCenter,
-                colors: [
-                  Color(0xFFFFE7CF),
-                  Color(0xFFFFFAF5),
-                ],
+                colors: [Color(0xFFFFE7CF), Color(0xFFFFFAF5)],
               ),
             ),
             child: Image.asset(
@@ -165,219 +172,255 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
             child: SingleChildScrollView(
               child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Register",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Cairo',
-                        fontSize: 32,
-                        color: _ink,
-                      ),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Register",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Cairo',
+                      fontSize: 32,
+                      color: _ink,
                     ),
-                    SizedBox(height: 25),
-                    Form(
-                      key: formKey,
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            autovalidateMode:
-                                AutovalidateMode.onUserInteraction,
-                            controller: username,
-                            validator: (value) => validEmail(value),
-                            decoration: InputDecoration(
-                              hintText: "Email",
-                              filled: true,
-                              fillColor: _inputFill,
-                              hintStyle: TextStyle(
-                                color: _muted,
-                                fontFamily: 'Cairo',
-                                fontWeight: FontWeight.w400,
-                                fontSize: 20,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide(
-                                  color: _outline,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide(
-                                  color: _accent,
-                                  width: 1.5,
-                                ),
-                              ),
-                              prefixIcon: Icon(
-                                Icons.email_outlined,
-                                color: _muted,
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 20),
-                          TextFormField(
-                            autovalidateMode:
-                                AutovalidateMode.onUserInteraction,
-                            // validator: (value) => validPass(value),
-                            controller: password,
-                            obscureText: isPasswordObscured,
-                            decoration: InputDecoration(
-                              hintText: "Password",
-                              filled: true,
-                              fillColor: _inputFill,
-                              hintStyle: TextStyle(
-                                color: _muted,
-                                fontFamily: 'Cairo',
-                                fontWeight: FontWeight.w400,
-                                fontSize: 20,
-                              ),
-                              prefixIcon: Icon(
-                                Icons.lock_outline,
-                                color: _muted,
-                              ),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  isPasswordObscured
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
-                                  color: _muted,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    isPasswordObscured = !isPasswordObscured;
-                                  });
-                                },
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide(
-                                  color: _outline,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide(
-                                  color: _accent,
-                                  width: 1.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 20),
-                          TextFormField(
-                            autovalidateMode:
-                                AutovalidateMode.onUserInteraction,
-                            controller: confirmPassword,
-                            // validator: (value) => confirm(password.text, value),
-                            obscureText: isConfirmPasswordObscured,
-                            decoration: InputDecoration(
-                              hintText: "Confirm Your Password",
-                              filled: true,
-                              fillColor: _inputFill,
-                              hintStyle: TextStyle(
-                                color: _muted,
-                                fontFamily: 'Cairo',
-                                fontWeight: FontWeight.w400,
-                                fontSize: 20,
-                              ),
-                              prefixIcon: Icon(
-                                Icons.lock_outline,
-                                color: _muted,
-                              ),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  isConfirmPasswordObscured
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
-                                  color: _muted,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    isConfirmPasswordObscured =
-                                        !isConfirmPasswordObscured;
-                                  });
-                                },
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide(
-                                  color: _outline,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide(
-                                  color: _accent,
-                                  width: 1.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 25),
-                          MaterialButton(
-                            onPressed: () {
-                              if (formKey.currentState?.validate() ?? false) {
-                                register();
-                              }
-                            },
-                            color: _accent,
-                            height: 55,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: isLoading
-                                ? CircularProgressIndicator(color: Colors.white)
-                                : Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        "Register",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                      Icon(
-                                        Icons.arrow_forward_sharp,
-                                        color: Colors.white,
-                                        size: 17,
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 18),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  ),
+                  SizedBox(height: 25),
+                  Form(
+                    key: formKey,
+                    child: Column(
                       children: [
-                        Text(
-                          "Already have an account?",
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontFamily: 'Cairo',
-                            color: _ink,
+                        TextFormField(
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          controller: username,
+                          validator: (value) => validEmail(value),
+                          decoration: InputDecoration(
+                            hintText: "Email",
+                            filled: true,
+                            fillColor: _inputFill,
+                            hintStyle: TextStyle(
+                              color: _muted,
+                              fontFamily: 'Cairo',
+                              fontWeight: FontWeight.w400,
+                              fontSize: 20,
+                            ),
+                            errorStyle: const TextStyle(
+                              color: _error,
+                              fontFamily: 'Cairo',
+                              fontSize: 13,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: _outline),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                color: _accent,
+                                width: 1.5,
+                              ),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: _error, width: 1.5),
+                            ),
+                            focusedErrorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: _error,
+                                width: 1.8,
+                              ),
+                            ),
+                            prefixIcon: Icon(
+                              Icons.email_outlined,
+                              color: _muted,
+                            ),
                           ),
                         ),
-                        TextButton(
-                          onPressed: _goToLogin,
-                          child: Text(
-                            "Login",
-                            style: TextStyle(
-                              fontSize: 15,
+                        SizedBox(height: 20),
+                        TextFormField(
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (value) => validPass(value),
+                          controller: password,
+                          obscureText: isPasswordObscured,
+                          decoration: InputDecoration(
+                            hintText: "Password",
+                            filled: true,
+                            fillColor: _inputFill,
+                            hintStyle: TextStyle(
+                              color: _muted,
                               fontFamily: 'Cairo',
-                              color: _accent,
+                              fontWeight: FontWeight.w400,
+                              fontSize: 20,
+                            ),
+                            errorStyle: const TextStyle(
+                              color: _error,
+                              fontFamily: 'Cairo',
+                              fontSize: 13,
+                            ),
+                            prefixIcon: Icon(Icons.lock_outline, color: _muted),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                isPasswordObscured
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: _muted,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  isPasswordObscured = !isPasswordObscured;
+                                });
+                              },
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: _outline),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                color: _accent,
+                                width: 1.5,
+                              ),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: _error, width: 1.5),
+                            ),
+                            focusedErrorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: _error,
+                                width: 1.8,
+                              ),
                             ),
                           ),
+                        ),
+                        SizedBox(height: 20),
+                        TextFormField(
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          controller: confirmPassword,
+                          validator: (value) => confirm(password.text, value),
+                          obscureText: isConfirmPasswordObscured,
+                          decoration: InputDecoration(
+                            hintText: "Confirm Your Password",
+                            filled: true,
+                            fillColor: _inputFill,
+                            hintStyle: TextStyle(
+                              color: _muted,
+                              fontFamily: 'Cairo',
+                              fontWeight: FontWeight.w400,
+                              fontSize: 20,
+                            ),
+                            errorStyle: const TextStyle(
+                              color: _error,
+                              fontFamily: 'Cairo',
+                              fontSize: 13,
+                            ),
+                            prefixIcon: Icon(Icons.lock_outline, color: _muted),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                isConfirmPasswordObscured
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: _muted,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  isConfirmPasswordObscured =
+                                      !isConfirmPasswordObscured;
+                                });
+                              },
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: _outline),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                color: _accent,
+                                width: 1.5,
+                              ),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: _error,
+                                width: 1.5,
+                              ),
+                            ),
+                            focusedErrorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: _error,
+                                width: 1.8,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 25),
+                        MaterialButton(
+                          onPressed: () {
+                            if (formKey.currentState?.validate() ?? false) {
+                              register();
+                            }
+                          },
+                          color: _accent,
+                          height: 55,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: isLoading
+                              ? CircularProgressIndicator(color: Colors.white)
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      "Register",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.arrow_forward_sharp,
+                                      color: Colors.white,
+                                      size: 17,
+                                    ),
+                                  ],
+                                ),
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  SizedBox(height: 18),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Already have an account?",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontFamily: 'Cairo',
+                          color: _ink,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _goToLogin,
+                        child: Text(
+                          "Login",
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontFamily: 'Cairo',
+                            color: _accent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
+          ),
         ],
       ),
     );

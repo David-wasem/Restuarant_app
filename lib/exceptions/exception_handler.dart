@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 
 class ExceptionHandler {
-  static String handle(DioException e, {String? unauthorizedMessage}) {
+  static String handle(DioException e) {
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
         return 'Connection timeout';
@@ -16,7 +16,6 @@ class ExceptionHandler {
         return handleStatusCode(
           e.response?.statusCode,
           responseData: e.response?.data,
-          unauthorizedMessage: unauthorizedMessage,
         );
 
       case DioExceptionType.cancel:
@@ -44,7 +43,7 @@ class ExceptionHandler {
     switch (statusCode) {
       case 400:
         if (responseData is Map<String, dynamic>) {
-          final message = responseData['message'] ?? responseData['error'];
+          final message = responseData['errors'] ?? responseData['error'];
           if (message is String && message.isNotEmpty) {
             return message;
           }
@@ -52,13 +51,13 @@ class ExceptionHandler {
         return 'Bad request';
 
       case 401:
-        return 'Invalid username or password';
+        return responseData['message'] ?? 'Invalid username or password';
 
       case 403:
         return 'Access denied';
 
       case 404:
-        return 'Not found';
+        return responseData['message'] ?? 'Not found';
 
       case 500:
         return 'Server error';

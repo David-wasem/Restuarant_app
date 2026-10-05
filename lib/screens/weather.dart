@@ -44,7 +44,6 @@ class _WeatherPageState extends State<WeatherPage> {
     } on DioException catch (e) {
       final message = ExceptionHandler.handle(
         e,
-        unauthorizedMessage: 'Invalid weather API key',
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -67,7 +66,6 @@ class _WeatherPageState extends State<WeatherPage> {
     } on DioException catch (e) {
       final message = ExceptionHandler.handle(
         e,
-        unauthorizedMessage: 'Invalid weather API key',
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
