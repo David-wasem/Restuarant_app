@@ -1,8 +1,9 @@
+
 class ItemModel {
   int itemId;
   String itemName;
   String itemDescription;
-  int itemPrice;
+  double itemPrice;
   String restuarantName;
   int restuarantId;
   String imageUrl;
@@ -19,12 +20,12 @@ class ItemModel {
 
   factory ItemModel.fromJson(Map<String, dynamic> json) {
     return ItemModel(
-      itemId: json['itemId'],
+      itemId: json['itemID'],
       itemName: json['itemName'],
       itemDescription: json['itemDescription'],
       itemPrice: json['itemPrice'],
-      restuarantName: json['restuarantName'],
-      restuarantId: json['restuarantId'],
+      restuarantName: json['restaurantName'],
+      restuarantId: json['restaurantID'],
       imageUrl: json['imageUrl'],
     );
   }

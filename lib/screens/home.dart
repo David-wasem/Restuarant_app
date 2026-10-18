@@ -1,10 +1,10 @@
 import 'package:api_app/exceptions/exception_handler.dart';
-import 'package:api_app/models/product_model.dart';
-import 'package:api_app/models/user_model.dart';
-import 'package:api_app/screens/weather.dart';
+import 'package:api_app/models/restuarant/restaurant_model.dart';
+import 'package:api_app/screens/login.dart';
+import 'package:api_app/screens/menu_screen.dart';
 import 'package:api_app/services/api_keys.dart';
 import 'package:api_app/services/api_dio.dart';
-import 'package:api_app/services/login_api.dart';
+import 'package:api_app/services/restuarant_api.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
@@ -18,228 +18,392 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  bool isLoading = false;
-  List<Product> productList = [];
-  TextEditingController idControl = TextEditingController();
-  late final LoginApi
-  api; // remove LoginApi Here -- send user's data in Constructor
-  String? firstName;
-  String? lastName;
-  String? image;
-  int? age;
+  late RestuarantApi _api;
+  TextEditingController searchController = TextEditingController();
+  static const Color _accent = Color(0xFFB84725);
+  static const Color _ink = Color(0xFF30231D);
+  static const Color _muted = Color(0xFF78675C);
+  static const Color _outline = Color(0xFFDCCFC3);
+  static const Color _inputFill = Color(0xFFFFF8F0);
+  final categries = {
+    'Burger': 'assets/images/Burger.png',
+    'Hotdog': 'assets/images/Hotdog.png',
+    'Kimbab': 'assets/images/Kimbab.png',
+    'Salmon Steak': 'assets/images/Salmon_Steak.png',
+    'Steak': 'assets/images/Steak.png',
+  };
+  List<RestaurantModel> search_res = [];
+  bool isSearching = false;
+  bool hasSearched = false;
+  bool isFound = false;
 
+  void _clearSearch() {
+    searchController.clear();
+    setState(() {
+      search_res.clear();
+      hasSearched = false;
+      isFound = false;
+      isSearching = false;
+    });
+  }
   @override
   void initState() {
     super.initState();
-    api = LoginApi(
+    _api = RestuarantApi(
       api: ApiDio(
-        baseURL: ApiKeys.baseUrl + ApiKeys.profileENDPOINT,
+        baseURL: ApiKeys.restuarantBaseUrl + ApiKeys.restuarantENDPOINT,
         dio: Dio(),
       ),
     );
   }
 
-  Future<dynamic> getProfile(String token) async {
+  MaterialPageRoute<void> _loginRoute() =>
+      MaterialPageRoute<void>(builder: (context) => const LoginPage());
+
+  Future<void> _confirmLogout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFFFFFCF8),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        icon: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: const BoxDecoration(
+            color: Color(0xFFFFE7CF),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.logout_rounded, color: _accent, size: 28),
+        ),
+        title: const Text(
+          'Leaving so soon?',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: _ink,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: const Text(
+          'Are you sure you want to log out of your account?',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: _muted, height: 1.4),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        actions: [
+          SizedBox(
+            width: 110,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _ink,
+                side: const BorderSide(color: _outline),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Stay'),
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 110,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: _accent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Log out'),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout == true && mounted) {
+      Navigator.pushAndRemoveUntil(context, _loginRoute(), (route) => false);
+    }
+  }
+
+  Future<void> _searchCategory(String category) async {
+    final query = category.trim();
+    if (query.isEmpty) {
+      _clearSearch();
+      return;
+    }
+
+    setState(() {
+      search_res.clear();
+      hasSearched = true;
+      isSearching = true;
+      isFound = false;
+    });
+
     try {
-      final response = await api.getProfile(token);
-      print(response);
-      return response;
+      final response = await _api.getCategory(query);
+      final results = <RestaurantModel>[];
+
+      for (final item in response) {
+        results.add(RestaurantModel.fromJson(item));
+      }
+
+      setState(() {
+        search_res.clear();
+        search_res.addAll(results);
+        isFound = search_res.isNotEmpty;
+        isSearching = false;
+      });
     } on DioException catch (e) {
-      final message = ExceptionHandler.handle(e);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("$message =====  ${e.response?.statusCode}")),
-      );
-      print(message);
+      setState(() {
+        isSearching = false;
+        isFound = false;
+      });
+      print(ExceptionHandler.handle(e));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(45.0),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Text(
-                "Hello, ${widget.name}",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Cairo',
-                  fontSize: 32,
-                  color: const Color(0xDD313030),
-                ),
+      body: Stack(
+        children: [
+          Container(
+            height: 400,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: AlignmentGeometry.topCenter,
+                colors: [_accent, const Color.fromARGB(255, 240, 141, 111)],
               ),
-              Row(
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 50),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Enter id : ", style: TextStyle(fontSize: 20)),
-                  Expanded(
-                    child: TextField(
-                      keyboardType: TextInputType.number,
-                      maxLength: 2,
-                      controller: idControl,
-                      decoration: InputDecoration(
-                        contentPadding: EdgeInsets.symmetric(vertical:0 ),
-                        suffix: idControl.text.isNotEmpty
-                            ? IconButton(
-                                onPressed: () {
-                                  idControl.clear();
-                                },
-                                icon: const Icon(Icons.cancel),
-                              )
-                            : null,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Welcome, ${widget.name}',
+                        style: TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
+                      IconButton(
+                        onPressed: () {
+                          _confirmLogout();
+                        },
+                        icon: Icon(Icons.logout, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    ' What are you craving today? 🍽',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: const Color.fromARGB(200, 255, 255, 255),
                     ),
                   ),
                 ],
               ),
-              ElevatedButton(
-                onPressed: () async {
-                  setState(() {
-                    isLoading = true;
-                    productList = [];
-                  });
-                  final ApiDio api = ApiDio(
-                    baseURL: "${ApiKeys.baseUrl}${ApiKeys.productENDPOINT}",
-                    dio: Dio(),
-                  );
-                  var temp = await api.get(
-                    id: int.tryParse(idControl.text),
-                    queryParameters: idControl.text.isEmpty
-                        ? {'skip': 10, 'limit': 5}
-                        : {},
-                  );
-                  if (idControl.text.isEmpty) {
-                    final products = (temp['products'] as List<dynamic>)
-                        .map(
-                          (json) =>
-                              Product.formJson(json as Map<String, dynamic>),
-                        )
-                        .toList();
-
-                    setState(() {
-                      productList.addAll(products);
-                    });
-                    print(temp);
-                  } else {
-                    Product pro = Product.formJson(temp);
-                    setState(() {
-                      productList.add(pro);
-                    });
-                    print(temp);
-                  }
-                  setState(() {
-                    isLoading = false;
-                  });
-                },
-                style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.all(Colors.blue),
-                ),
-                child: Text(
-                  "Press to Get Dio Response",
-                  style: TextStyle(color: Colors.white),
-                ),
+            ),
+          ),
+          Container(
+            margin: EdgeInsets.only(top: 150),
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFCF8),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(50),
+                topRight: Radius.circular(50),
               ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => WeatherPage(city: 'Aswan'),
+            ),
+            child: Column(
+              children: [
+                SizedBox(height: 10),
+                TextField(
+                  controller: searchController,
+                  onTapOutside: (_) => FocusScope.of(context).unfocus(),
+                  decoration: InputDecoration(
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide(color: _outline),
                     ),
-                  );
-                },
-                style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.all(Colors.blue),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide(color: _accent),
+                    ),
+                    hintText:
+                        'Search restaurants... Ex: "Rajasthani, Gujarati"',
+                    hintStyle: TextStyle(color: _muted),
+                    prefixIcon: Icon(Icons.search),
+                    suffixIcon: (searchController.text.isEmpty)
+                        ? null
+                        : IconButton(
+                            icon: Icon(Icons.clear),
+                            onPressed: _clearSearch,
+                          ),
+                    filled: true,
+                    fillColor: _inputFill,
+                    border: OutlineInputBorder(borderSide: BorderSide.none),
+                  ),
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: _searchCategory,
                 ),
-                child: Text(
-                  "Weather page",
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    productList = [];
-                  });
-                },
-                style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.all(Colors.blueGrey),
-                ),
-                child: Text("Delete", style: TextStyle(color: Colors.white)),
-              ),
-              // SizedBox(height: 15),
-              ElevatedButton(
-                onPressed: () async {
-                  final jsonData = await getProfile(widget.accessToken);
-                  if (!mounted || jsonData is! Map<String, dynamic>) return;
-                  final user = User.fromJson(jsonData);
-                  setState(() {
-                    firstName = user.firstName;
-                    age = user.age;
-                    lastName = user.lastName;
-                    image = user.image;
-                  });
-                },
-                style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.all(Colors.blueGrey),
-                ),
-                child: Text(
-                  "Get Profile",
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-              SizedBox(height: 15),
-              (isLoading)
-                  ? CircularProgressIndicator()
-                  : Expanded(
-                      child: ListView.builder(
-                        itemCount: productList.length,
-                        itemBuilder: (context, index) {
-                          return Container(
-                            margin: EdgeInsets.symmetric(vertical: 10.0),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: ListTile(
-                              title: Text(productList[index].title),
-                              subtitle: Text(
-                                productList[index].price.toString(),
-                              ),
-                              leading:
-                                  productList[index].images?.isNotEmpty == true
-                                  ? Image.network(
-                                      productList[index].images!.first,
-                                      width: 50,
-                                      height: 50,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              const Icon(
-                                                Icons.image_not_supported,
-                                              ),
-                                    )
-                                  : const Icon(Icons.image_not_supported),
+                if (isSearching)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: CircularProgressIndicator(),
+                  )
+                else if (hasSearched && !isFound)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      'No results found for "${searchController.text}"',
+                      style: TextStyle(color: _muted),
+                    ),
+                  )
+                else if (search_res.isNotEmpty)
+                  ListView.builder(
+                    itemBuilder: (context, index) {
+                      return InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MenuScreen(rest: search_res[index]),
                             ),
                           );
                         },
+                        child: Container(
+                          margin: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 10,
+                          ),
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: _inputFill,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: _outline),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                search_res[index].restaurantName,
+                                style: TextStyle(
+                                  color: _ink,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                search_res[index].address,
+                                style: TextStyle(
+                                  color: _ink,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    itemCount: search_res.length,
+                    shrinkWrap: true,
+                  )
+                else
+                  const SizedBox.shrink(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Categories',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: _ink,
                       ),
                     ),
-              Text("Fisrt name : $firstName"),
-              Text("last name : $lastName"),
-              Text("age : $age"),
-              image == null
-                  ? const Icon(Icons.account_circle, size: 80)
-                  : Image.network(
-                      image!,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.image_not_supported, size: 80),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _accent,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text(
+                            'See all',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ],
+                      ),
                     ),
-            ],
+                  ],
+                ),
+                SizedBox(height: 10),
+                SizedBox(
+                  height: 130,
+                  child: ListView.builder(
+                    itemCount: categries.length,
+                    scrollDirection: Axis.horizontal,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        margin: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 10,
+                        ),
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: _inputFill,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: _outline),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Image.asset(
+                              categries.values.elementAt(index),
+                              width: 50,
+                              height: 50,
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              categries.keys.elementAt(index),
+                              style: TextStyle(
+                                color: _ink,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
